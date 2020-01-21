@@ -1,0 +1,76 @@
+import math
+import numpy
+import random
+import scipy.integrate as integrate
+import matplotlib.pyplot as plt
+
+#We are going to estimate the kl divergence by empirically sampling the sum of our exponential variables.
+
+kldivs=[]
+
+samsize=1800
+
+#samsize is the number of samples we will take from the sum.
+
+
+
+for numberofvariables in range(3,45):  #we will compute the kl divergence for many different numbers of exponential variables
+
+    lscale=[]
+    randmatrix=[]
+    normedlscale=[]
+    while (len(lscale)<numberofvariables):
+        s=numpy.random.uniform(low=0.001,high=5)
+        k=0
+        for q in range(len(lscale)):
+            if(s==lscale[q]):
+                k=1
+        if(k==0):
+            lscale.append(s)
+    #this insures that no two scale parameters will equal each other
+ 
+
+    def normalizedfunctions(i,x):
+        return (((lscale[i]**2)*numpy.exp(-lscale[i]*x)-1)/math.sqrt(numberofvariables))
+        
+        #this normalizes our variables so that their sum will have mean 0 and variance 1
+
+    sampoints=numpy.random.uniform(-30,30,size=samsize)
+    #here we choose points at which to evaluate the normalized variables
+    
+    for i in range(numberofvariables):
+        row=[]
+        for j in range(samsize):
+            row.append(normalizedfunctions(i,sampoints[j]))
+        randmatrix.append(row)
+        
+   
+    randmatrix=numpy.array(randmatrix)
+
+    sumrand=numpy.sum(randmatrix,axis=0)
+    
+    histogram=numpy.histogram(sumrand, density=True)
+    
+    lowerbound=numpy.amin(histogram[1])-1
+    upperbound=numpy.amax(histogram[1])+1
+    
+    def histogramfunction(x):
+        i=0
+        while i in range(len(histogram[1])):
+            if(x<lowerbound or x>upperbound):
+                return 0
+            elif(x>(histogram[1][i+1])):
+                i+=1
+            else:
+                return histogram[0][i]
+    
+
+    def klintegrand(x):
+        if histogramfunction(x)>0:
+            return histogramfunction(x)*numpy.log(histogramfunction(x))
+        else:
+            return 0
+    u=integrate.quad(lambda x:klintegrand(x),lowerbound,upperbound,points=histogram[1])
+    kldivs.append(u+0.5*numpy.log(2*math.pi)+0.5)
+
+plt.plot(kldivs)
