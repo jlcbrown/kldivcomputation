@@ -8,18 +8,22 @@ import matplotlib.pyplot as plt
 
 kldivs=[]
 
-samsize=1800
+samsize=28000
 
 #samsize is the number of samples we will take from the sum.
 
+#we will compute the kl divergence for many different numbers of exponential variables:
 
-
-for numberofvariables in range(3,45):  #we will compute the kl divergence for many different numbers of exponential variables
+for numberofvariables in range(5,100):
 
     lscale=[]
-    randmatrix=[]
+    bscale=[]
+
+    randmatrix=numpy.zeros((numberofvariables,samsize))
     normedlscale=[]
+    
     while (len(lscale)<numberofvariables):
+
         s=numpy.random.uniform(low=0.001,high=5)
         k=0
         for q in range(len(lscale)):
@@ -28,49 +32,52 @@ for numberofvariables in range(3,45):  #we will compute the kl divergence for ma
         if(k==0):
             lscale.append(s)
     #this insures that no two scale parameters will equal each other
- 
-
-    def normalizedfunctions(i,x):
-        return (((lscale[i]**2)*numpy.exp(-lscale[i]*x)-1)/math.sqrt(numberofvariables))
-        
-        #this normalizes our variables so that their sum will have mean 0 and variance 1
-
-    sampoints=numpy.random.uniform(-30,30,size=samsize)
-    #here we choose points at which to evaluate the normalized variables
-    
     for i in range(numberofvariables):
-        row=[]
+        bscale.append(1/lscale[i])
+
+
+
+    for i in range(numberofvariables):
         for j in range(samsize):
-            row.append(normalizedfunctions(i,sampoints[j]))
-        randmatrix.append(row)
-        
-   
+            (randmatrix[i])[j]=(lscale[i]*numpy.random.exponential(scale=bscale[i])-1)/math.sqrt(numberofvariables)
+    #this normalizes our variables so that their sum will have mean 0 and variance 1
+
+
+
     randmatrix=numpy.array(randmatrix)
 
     sumrand=numpy.sum(randmatrix,axis=0)
-    
-    histogram=numpy.histogram(sumrand, density=True)
-    
-    lowerbound=numpy.amin(histogram[1])-1
-    upperbound=numpy.amax(histogram[1])+1
-    
+
+    histogram=numpy.histogram(sumrand, bins=4*numberofvariables+18,density=True)
+
+    #plt.ylim(0,0.5)
+    #plt.hist(sumrand, bins=math.floor(numberofvariables/5)+9, density=True)
+
+    lowerbound=math.floor(numpy.amin(histogram[1]))-1
+    upperbound=math.ceil(numpy.amax(histogram[1]))+1
+
     def histogramfunction(x):
         i=0
         while i in range(len(histogram[1])):
-            if(x<lowerbound or x>upperbound):
+            if(x<numpy.amin(histogram[1]) or x>numpy.amax(histogram[1])):
                 return 0
             elif(x>(histogram[1][i+1])):
                 i+=1
             else:
                 return histogram[0][i]
-    
 
     def klintegrand(x):
         if histogramfunction(x)>0:
             return histogramfunction(x)*numpy.log(histogramfunction(x))
         else:
             return 0
-    u=integrate.quad(lambda x:klintegrand(x),lowerbound,upperbound,points=histogram[1])
-    kldivs.append(u+0.5*numpy.log(2*math.pi)+0.5)
+        
+    klsum=0
+    for j in range(upperbound-lowerbound+2):
+        klsum+=(histogramfunction(lowerbound+j+0.5))*(numpy.amax(sumrand)-numpy.amin(sumrand))/(math.floor(numberofvariables/5)+9)
+    
+    #u=integrate.quad(lambda x:klintegrand(x),lowerbound,upperbound,points=histogram[1])[0]
+    kldivs.append(klsum+0.5*numpy.log(2*math.pi)+0.5)
+    
+plt.semilogy(kldivs)
 
-plt.plot(kldivs)
