@@ -1,0 +1,88 @@
+#here we run simulations to find the k-l divergence between sums of biexponentials and a gaussian
+#we also compare what our simulation method says about the k-l divergence between a gaussian and itself
+#which should be zero in order to assess the order of magnitude of the simulation's accuracy
+
+import math
+import numpy
+import random
+import scipy.integrate as integrate
+import matplotlib.pyplot as plt
+means=[] 
+expectmeans=[]
+abserrs=[]
+kldivs=[]
+gausskldivs=[]
+lscalevars=[]
+samsize=6000000
+histogrambins=800
+lscale=numpy.random.exponential(scale=1,size=400)
+bscale=[]
+for i in range(400):
+    bscale.append(1/lscale[i])
+            #this is cosmetic, and will allow us to reference betas without using reciprocals
+#here, we choose all of our lambdas at the beginning, 
+#so we are sequentially considering more, but the base lambdas remain the same
+
+#We will iterate over the number of variables being summed (top)
+#We are drawing the same number of test points (samsize) from each variable in each iteration
+for numberofvars in range(2,45):
+    meanerrors=[]
+    varerrors=[]
+    means=[]
+    varrs=[]
+    randmatrix=[]
+    sumrand = []
+
+    normedlscale=[]
+    variancenormalization=0
+    uniformgeneration=[]
+    samplematrix=[] #why are we choosing lambdas exponentially?
+    #print("the original lambdas are "+str(lscale))
+    for i in range(numberofvars):
+        variancenormalization+=2/lscale[i]**2 #variances add, so we need to divide by this quantity to end up with a variable with variance 1
+    #lscalevars.append(numpy.var(lscale))
+
+
+    for i in range(numberofvars):
+        samplematrix.append(numpy.random.laplace(scale=bscale[i],size=samsize)*lscale[i]/math.sqrt(2))
+
+    randmatrix=numpy.array(samplematrix)
+    sumrand=numpy.sum(randmatrix,axis=0)/math.sqrt(numberofvars)
+    #plt.hist(sumrand,bins=histogrambins,density=True)
+    #print(sumrand)
+    plt.plot
+
+    blocksumrand=numpy.histogram(sumrand,bins='auto',density=True)
+    #print(blocksumrand)
+
+    #the density=True will give us a pdf
+
+    disckldiv=0
+
+    for i in range(len(blocksumrand[0])):
+        if(blocksumrand[0][i]>0.00000000000000001):
+            disckldiv+=blocksumrand[0][i]*numpy.log(blocksumrand[0][i])*(blocksumrand[1][i+1]-blocksumrand[1][i])
+    kldiv=disckldiv+numpy.log(math.sqrt(2*math.pi))+0.5
+    kldivs.append(kldiv)
+    
+    
+    #here we integrated p log(p/q) by integrating p log p numerically 
+    #and using the fact that var p=1 to compute p log q, 
+    #since q is gaussian and has an easily computed log.
+    
+    
+    
+
+    print("the kl-div for "+str(numberofvars)+" is "+str(kldiv))
+
+    gaussianvalues=[]
+    gaussdisckldiv=0
+    for i in range(len(blocksumrand[1])):
+        gaussianvalues.append(numpy.exp(-blocksumrand[1][i]**2/2)/math.sqrt(2*math.pi))
+    for i in range(len(blocksumrand[0])):
+        gaussdisckldiv+=gaussianvalues[i]*numpy.log(gaussianvalues[i])*(blocksumrand[1][i+1]-blocksumrand[1][i])
+    gausskldiv= gaussdisckldiv+numpy.log(math.sqrt(2*math.pi))+0.5
+    gausskldivs.append(gausskldiv)
+    print("the gauss kl-div for "+str(numberofvars)+" is "+str(gausskldiv)+"; the added lambda is "+str(lscale[numberofvars-1]))
+
+plt.plot(kldivs)
