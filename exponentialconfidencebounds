@@ -1,0 +1,66 @@
+import math
+import numpy
+import random
+import scipy.integrate as integrate
+import matplotlib.pyplot as plt
+
+#We are going to compute the 95% confidence intervals for the sums of exponentials
+
+kldivs=[]
+
+samsize=800000
+
+#samsize is the number of samples we will take from the sum.
+
+
+confidenceinterval95=[]
+for numberofvariables in range(5,150):
+
+    lscale=[]
+    bscale=[]
+
+    randmatrix=numpy.zeros((numberofvariables,samsize))
+    
+    normedlscale=[]
+    
+    while (len(lscale)<numberofvariables):
+
+        s=numpy.random.uniform(low=0.001,high=5)
+        k=0
+        for q in range(len(lscale)):
+            if(s==lscale[q]):
+                k=1
+        if(k==0):
+            lscale.append(s)
+    #this insures that no two scale parameters will equal each other
+    
+    for i in range(numberofvariables):
+        bscale.append(1/lscale[i])
+    #python uses betas rather than lambdas as the exponential scale parameters
+
+
+
+    for i in range(numberofvariables):
+        for j in range(samsize):
+            (randmatrix[i])[j]=(lscale[i]*numpy.random.exponential(scale=bscale[i])-1)/math.sqrt(numberofvariables)
+    #this normalizes our variables so that their sum will have mean 0 and variance 1
+
+
+
+    randmatrix=numpy.array(randmatrix)
+
+    sumrand=numpy.sum(randmatrix,axis=0)
+    sumrand.sort()
+    confidenceinterval95.append(sumrand[math.ceil(.977*samsize)])
+    #this is not exactly a 95% confidence interval because the sums of exponentials are not symmetric, 
+    #but the sum of even a few begins to look symmetric enough for this approximation
+    print(numberofvariables)
+
+
+plt.plot(confidenceinterval95)
+plt.xlabel('number of variables')
+plt.ylabel('95% confidence interval')
+plt.savefig('confidenceintervals2')
+plt.show()
+numpy.save('95confidenceboundset',confidenceinterval95)
+
