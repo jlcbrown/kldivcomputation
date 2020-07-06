@@ -1,0 +1,58 @@
+#this file is simply devoted to comparing the analytical computation of the means of the sums of exponential variables
+#computed in the memo to simulated values
+
+import numpy
+import math
+import random
+import matplotlib.pyplot as plt
+
+
+
+meanerrors=[]
+varerrors=[]
+
+means=[]
+varrs=[]
+
+
+sumrand = []
+bscale=[]
+#vects is the number of exponential variables we are adding in each case
+for vects in range(3,100):
+    randmatrix=[]
+    lscale=[]
+    #we want to choose distinct scale parameters
+    
+    while (len(lscale)<vects):
+        s=numpy.random.exponential(scale=5)
+        k=0
+        for q in range(len(lscale)):
+            if(s==lscale[q]):
+                k=1
+        if(k==0):
+            lscale.append(s)    
+        #lscale=numpy.random.exponential(scale=2,size=vects)
+    for i in range(vects):
+        bscale.append(1/lscale[i])
+        
+    samsize=10000
+    for i in range(vects):
+        randmatrix.append(numpy.random.exponential(scale=bscale[i],size=samsize))
+
+    randmatrix=numpy.array(randmatrix)
+
+    expectmean = 0
+    for j in range(vects):
+        difprod=1
+        for l in range(vects):
+            if(l!=j):
+                difprod=difprod*lscale[l]/(lscale[l]-lscale[j])
+        expectmean += bscale[j]*difprod
+    meanerrors.append(expectmean-numpy.mean(sumrand))
+    projmeans.append(expectmean)
+
+    sumrand=numpy.sum(randmatrix,axis=0)
+    means.append(numpy.mean(sumrand))
+plt.plot(meanerrors)
+
+    
