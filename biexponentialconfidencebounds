@@ -1,0 +1,48 @@
+import math
+import numpy
+import random
+import scipy.integrate as integrate
+import matplotlib.pyplot as plt
+
+#We are going to compute the 95% confidence intervals for the sums of biexponentials
+#The process is exactly the same as for exponentials
+
+
+
+samsize=700000
+
+#samsize is the number of samples we will take from the sum.
+lscale=numpy.random.exponential(scale=1,size=200)
+bscale=[]
+for i in range(200): 
+    bscale.append(1/lscale[i])
+
+confidenceinterval95=[]
+for numberofvars in range(5,150):
+
+    randmatrix=[]
+    sumrand = []
+
+    normedlscale=[]
+    variancenormalization=0
+    samplematrix=[] #why are we choosing lambdas exponentially?
+
+
+    for i in range(numberofvars):
+        samplematrix.append(numpy.random.laplace(scale=bscale[i],size=samsize)*lscale[i]/math.sqrt(2))
+
+    randmatrix=numpy.array(samplematrix)
+    sumrand=numpy.sum(randmatrix,axis=0)/math.sqrt(numberofvars)
+
+    sumrand.sort()
+    confidenceinterval95.append(sumrand[math.ceil(.977*samsize)])
+    print(numberofvars)
+
+
+plt.plot(confidenceinterval95)
+plt.xlabel('number of biexponential variables')
+plt.ylabel('95% confidence interval')
+plt.savefig('biexponential_confidence_intervals')
+plt.show()
+numpy.save('biexponential_95_confidence_bound_set',confidenceinterval95)
+
