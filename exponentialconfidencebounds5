@@ -1,0 +1,62 @@
+import math
+import numpy
+import random
+import scipy.integrate as integrate
+import matplotlib.pyplot as plt
+
+#We are going to compute the 95% confidence intervals for the sums of exponentials
+
+kldivs=[]
+
+samsize=800000
+sumrands=[0,0,0,0,0]
+#samsize is the number of samples we will take from the sum.
+
+
+confidenceinterval5=[0,0,0,0,0]
+for numberofvariables in range(5,150):
+
+    lscale=[]
+    bscale=[]
+
+    randmatrix=numpy.zeros((numberofvariables,samsize))
+    
+    normedlscale=[]
+    
+    while (len(lscale)<numberofvariables):
+
+        s=numpy.random.uniform(low=0.001,high=5)
+        k=0
+        for q in range(len(lscale)):
+            if(s==lscale[q]):
+                k=1
+        if(k==0):
+            lscale.append(s)
+    #this insures that no two scale parameters will equal each other
+    for i in range(numberofvariables):
+        bscale.append(1/lscale[i])
+
+
+
+    for i in range(numberofvariables):
+        for j in range(samsize):
+            (randmatrix[i])[j]=(lscale[i]*numpy.random.exponential(scale=bscale[i])-1)/math.sqrt(numberofvariables)
+    #this normalizes our variables so that their sum will have mean 0 and variance 1
+
+
+
+    randmatrix=numpy.array(randmatrix)
+
+    sumrand=numpy.sum(randmatrix,axis=0)
+    sumrand.sort()
+    sumrands.append(sumrand)
+    confidenceinterval5.append(sumrand[math.ceil(.02275*samsize)])
+    print(numberofvariables)
+numpy.save('collectionofsumrands',sumrands)
+
+plt.plot(confidenceinterval5)
+plt.xlabel('number of variables')
+plt.ylabel('5% confidence interval')
+plt.savefig('5confidenceintervals')
+plt.show()
+numpy.save('5confidenceboundset',confidenceinterval5)
