@@ -4,7 +4,7 @@ import math
 import random
 import matplotlib.pyplot as plt
 
-numberofvars=23
+numberofvars=11
 samsize=300000
 
 #first we create the simulation histogram 
@@ -68,7 +68,7 @@ def analytic_sum_pdf (x):
 
 xaxis=[]
 yaxis=[]
-for i in range(400*math.ceil(math.sqrt(numpy.var(sumrand)))):
-    xaxis.append(-2*math.ceil(math.sqrt(numpy.var(sumrand)+i/100)))
-    yaxis.append(analytic_sum_pdf(-2*math.sqrt(math.ceil(numpy.var(sumrand))+i/100)))
+for i in range(50000):
+    xaxis.append(-25+i/1000)
+    yaxis.append(analytic_sum_pdf(-25+i/1000))
 plt.plot(xaxis,yaxis)
