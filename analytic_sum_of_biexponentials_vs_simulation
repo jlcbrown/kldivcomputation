@@ -1,0 +1,74 @@
+import numpy
+import scipy
+import math
+import random
+import matplotlib.pyplot as plt
+
+numberofvars=23
+samsize=300000
+
+#first we create the simulation histogram 
+#this is similar to what we did for the k-l divergences but without the normalization
+lscale=[]
+while (len(lscale)<numberofvars):
+    candidate=numpy.random.exponential(scale=1)
+    counter=0
+    for j in range(len(lscale)):
+        if(abs(lscale[j]-candidate)<0.001 and candidate>0.1):
+            counter=1
+    if(counter==0):
+        lscale.append(candidate)
+
+
+bscale=[]
+for i in range(numberofvars):
+    bscale.append(1/lscale[i])
+            #this is cosmetic, and will allow us to reference betas without using reciprocals
+#here, we choose all of our lambdas at the beginning, 
+#so we are sequentially considering more, but the base lambdas remain the same
+
+#We will iterate over the number of variables being summed (top)
+#We are drawing the same number of test points (samsize) from each variable in each iteration
+
+randmatrix=[]
+sumrand = []
+
+uniformgeneration=[]
+samplematrix=[] 
+#why are we choosing lambdas exponentially?
+#print("the original lambdas are "+str(lscale))
+
+ #variances add, so we need to divide by this quantity to end up with a variable with variance 1
+#lscalevars.append(numpy.var(lscale))
+
+
+for i in range(numberofvars):
+    samplematrix.append(numpy.random.laplace(scale=bscale[i],size=samsize))
+    
+randmatrix = numpy.array(samplematrix)
+sumrand=numpy.sum(randmatrix,axis=0)
+blocksumrand=numpy.histogram(sumrand,bins='auto',density=True)
+plt.hist(sumrand,bins='auto',density=True,histtype='step')
+
+
+
+#Now we give the analytic computation
+
+def analytic_sum_pdf (x):
+    s_summation=0
+    for s in range(0,numberofvars):
+        j_prod=1
+        for j in range(0,numberofvars):
+            if (s != j):
+                j_prod*=lscale[j]**2/(lscale[j]**2-lscale[s]**2)
+        s_summation+=lscale[s]*numpy.exp(-lscale[s]*abs(x))*j_prod
+            
+        
+    return 0.5*s_summation
+
+xaxis=[]
+yaxis=[]
+for i in range(400*math.ceil(math.sqrt(numpy.var(sumrand)))):
+    xaxis.append(-2*math.ceil(math.sqrt(numpy.var(sumrand)+i/100)))
+    yaxis.append(analytic_sum_pdf(-2*math.sqrt(math.ceil(numpy.var(sumrand))+i/100)))
+plt.plot(xaxis,yaxis)
