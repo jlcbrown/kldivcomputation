@@ -1,0 +1,156 @@
+import numpy
+import scipy
+import math
+import random
+import matplotlib.pyplot as plt
+
+number_of_scale_parameters=4
+samsize=30000
+
+#first we create the simulation histogram 
+#this is similar to what we did for the k-l divergences but without the normalization
+lambdas=[]
+
+while (len(lambdas)<number_of_scale_parameters):
+    candidate=numpy.random.exponential(scale=1)
+    counter=0
+    for j in range(len(lambdas)):
+        if(abs(lambdas[j]-candidate)<0.001 and candidate>0.1):
+            counter=1
+    if(counter==0):
+        lambdas.append(candidate)
+multiplicities=numpy.random.randint(low=1,high=8,size=number_of_scale_parameters)
+print(multiplicities)
+
+
+
+
+bscale=[]
+for i in range(number_of_scale_parameters):
+    bscale.append(1/lambdas[i])
+            #this is cosmetic, and will allow us to reference betas without using reciprocals
+
+
+
+randmatrix=[]
+sumrand = []
+uniformgeneration=[]
+samplematrix=[] 
+
+
+for i in range(sum(multiplicities)):
+    for j in range(number_of_scale_parameters):
+        if(sum(multiplicities[:j])<=i and sum(multiplicities[:j+1])>i):
+            samplematrix.append(numpy.random.laplace(scale=bscale[j],size=samsize))
+    
+    
+randmatrix = numpy.array(samplematrix)
+#print(randmatrix)
+
+
+sumrand=numpy.sum(randmatrix,axis=0)
+blocksumrand=numpy.histogram(sumrand,bins='auto',density=True)
+plt.hist(sumrand,bins='auto',density=True,histtype='step')
+
+
+
+#Now we give the analytic computation
+
+def analytic_sum_pdf (x):
+    s_summation=0
+    for s in range(number_of_scale_parameters):
+        alpha_summation=0
+        for alpha in range(multiplicities[s]):
+            beta_summation=0
+            for beta in range(multiplicities[s]-alpha):
+                complete=0
+                multinomial_sum=1
+                if(number_of_scale_parameters>1.1):
+                    multinomial_sum=0
+                    multi_index=numpy.zeros(2*number_of_scale_parameters)
+                    if(s==0):
+                        multi_index[2]=beta
+                    else:
+                        multi_index[0]=beta
+                    while(complete==0):
+
+                        multinomial_factor=math.factorial(2*number_of_scale_parameters)
+                        for k in range(2*number_of_scale_parameters):
+                            multinomial_factor=multinomial_factor/math.factorial(multi_index[k])
+                        
+                        little_prod=1
+                        for v in range(2*number_of_scale_parameters):
+                            if(math.floor(v/2)!=s and abs(math.floor(v/2)-v/2)<0.1):
+                                little_prod*=(-1)**multi_index[v]*(math.factorial(multi_index[v]+multiplicities[math.floor(v/2)]-1)/math.factorial(multiplicities[math.floor(v/2)]-1))*(1.0j*(lambdas[math.floor(v/2)]-lambdas[s]))**(multi_index[v]+multiplicities[math.floor(v/2)])
+                            elif(math.floor(v/2)!=s and abs(math.floor(v/2)-v/2)>0.6):
+                                little_prod*=(-1)**multi_index[v]*(math.factorial(multi_index[v]+multiplicities[math.floor(v/2)]-1)/math.factorial(multiplicities[math.floor(v/2)]-1))*(1.0j*(-lambdas[math.floor(v/2)]-lambdas[s]))**(multi_index[v]+multiplicities[math.floor(v/2)])
+                        multinomial_sum+=multinomial_factor*little_prod
+                        
+                        if(multi_index[2*number_of_scale_parameters-1]==beta or (s==number_of_scale_parameters-1 and multi_index[2*number_of_scale_parameters-3]==beta)):
+                            complete=1
+
+                        elif(multi_index[2*number_of_scale_parameters-1]!=0 or (s==number_of_scale_parameters-1 and multi_index[2*number_of_scale_parameters-3]!=0)):
+                            penultimate=0
+                            for j in range(2*number_of_scale_parameters):
+                                if(multi_index[j]!=0):
+                                    check=0
+                                    for k in range(2*number_of_scale_parameters):
+                                        if(j<k and multi_index[k]!=0):
+                                            check+=1
+                                    if(check==1):
+                                        penultimate=j
+                                        
+                            if(multi_index[2*number_of_scale_parameters-1]!=0):
+                                fin_value=multi_index[2*number_of_scale_parameters-1]
+                                multi_index[penultimate]-=1
+                                multi_index[2*number_of_scale_parameters-1]=0
+                                if(penultimate!=2*s-1):
+                                    multi_index[penultimate+1]+=fin_value+1
+
+                                elif(penultimate==2*s-1):
+                                    multi_index[penultimate+3]+=fin_value+1
+                                
+                                
+                            else:
+                                fin_value=multi_index[2*number_of_scale_parameters-3]
+                                multi_index[2*number_of_scale_parameters-3]=0
+                                multi_index[penultimate]-=1
+                                multi_index[penultimate+1]+=fin_value+1
+                                
+                                
+                                
+                        else:
+                            ultimate=0
+                            for j in range(2*number_of_scale_parameters):
+                                if(multi_index[j]!=0):
+                                    check=0
+                                    for k in range(2*number_of_scale_parameters):
+                                        if(j<k and multi_index[k]!=0):
+                                            check+=1
+                                    if(check==0):
+                                        ultimate=j
+                            if(ultimate!=2*s-1):
+                                multi_index[ultimate+1]=1
+                                multi_index[ultimate]-=1
+                            else:
+                                multi_index[ultimate+3]=1
+                                multi_index[ultimate]-=1
+                beta_summation+=(math.factorial(2*multiplicities[s]-2-alpha-beta)/(math.factorial(alpha)*math.factorial(beta)*math.factorial(multiplicities[s]-alpha-beta-1))*(1.0j)**(3*multiplicities[s]-3*beta))*(abs(x)**alpha)*math.exp(-lambdas[s]*abs(x))*multinomial_sum*(2*lambdas[s])**(-2*multiplicities[s]+1+alpha+beta)
+            alpha_summation+=beta_summation
+        s_summation+=(1.0j)**multiplicities[s]*alpha_summation/math.factorial(multiplicities[s]-1)
+    lambda_prod=1
+    for k in range(number_of_scale_parameters):
+        lambda_prod*=lambdas[k]**multiplicities[k]
+    return (lambda_prod**2)*s_summation
+
+print(analytic_sum_pdf(-0.2))
+                        
+                
+"""
+xaxis=[]
+yaxis=[]
+for i in range(50000):
+    xaxis.append(-25+i/1000)
+    yaxis.append(analytic_sum_pdf(-25+i/1000))
+plt.plot(xaxis,yaxis)
+"""
