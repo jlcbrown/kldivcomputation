@@ -9,6 +9,7 @@ samsize=30000
 
 #first we create the simulation histogram 
 #this is similar to what we did for the k-l divergences but without the normalization
+#number_of_scale_parameters is the number of different lambda values; we add multiplicites later
 lambdas=[]
 
 while (len(lambdas)<number_of_scale_parameters):
@@ -20,7 +21,7 @@ while (len(lambdas)<number_of_scale_parameters):
     if(counter==0):
         lambdas.append(candidate)
 multiplicities=numpy.random.randint(low=1,high=8,size=number_of_scale_parameters)
-print(multiplicities)
+#print(multiplicities)
 
 
 
@@ -58,25 +59,36 @@ plt.hist(sumrand,bins='auto',density=True,histtype='step')
 
 def analytic_sum_pdf (x):
     s_summation=0
+    #this is the outmost summation counter
     for s in range(number_of_scale_parameters):
         alpha_summation=0
+        #another summation counter
         for alpha in range(multiplicities[s]):
             beta_summation=0
+            #a third
             for beta in range(multiplicities[s]-alpha):
                 complete=0
+                #when all of the possible derivative combinations have been taken, we will set complete=1
+                
                 multinomial_sum=1
                 if(number_of_scale_parameters>1.1):
                     multinomial_sum=0
+                    #this refers to the big sum that comes from the generalized product rule applied to (z+i lambda_j)(z-i lambda_j)...
                     multi_index=numpy.zeros(2*number_of_scale_parameters)
                     if(s==0):
                         multi_index[2]=beta
                     else:
                         multi_index[0]=beta
+                    #we start out by taking all derivatives on the first available spot
+                    #index slots 2n,2n+1 correspond to the same lambda, but one is based on the z-i lambda_j term and the other on the z+i lambda_j term
+                    #we will subsequently change our derivatives according to the lexicographic order on the corresponding multi-indices
+                    
                     while(complete==0):
 
                         multinomial_factor=math.factorial(2*number_of_scale_parameters)
                         for k in range(2*number_of_scale_parameters):
                             multinomial_factor=multinomial_factor/math.factorial(multi_index[k])
+                        #this accounts for the number of different orders we could have taken derivatives to get to a particular multi-index
                         
                         little_prod=1
                         for v in range(2*number_of_scale_parameters):
@@ -88,7 +100,9 @@ def analytic_sum_pdf (x):
                         
                         if(multi_index[2*number_of_scale_parameters-1]==beta or (s==number_of_scale_parameters-1 and multi_index[2*number_of_scale_parameters-3]==beta)):
                             complete=1
+                            #here we have reached the last possible derivative distribution
 
+                        #now we update the multi_index
                         elif(multi_index[2*number_of_scale_parameters-1]!=0 or (s==number_of_scale_parameters-1 and multi_index[2*number_of_scale_parameters-3]!=0)):
                             penultimate=0
                             for j in range(2*number_of_scale_parameters):
@@ -135,6 +149,7 @@ def analytic_sum_pdf (x):
                             else:
                                 multi_index[ultimate+3]=1
                                 multi_index[ultimate]-=1
+                #now that we have handled the derivatives, we compute the sums
                 beta_summation+=(math.factorial(2*multiplicities[s]-2-alpha-beta)/(math.factorial(alpha)*math.factorial(beta)*math.factorial(multiplicities[s]-alpha-beta-1))*(1.0j)**(3*multiplicities[s]-3*beta))*(abs(x)**alpha)*math.exp(-lambdas[s]*abs(x))*multinomial_sum*(2*lambdas[s])**(-2*multiplicities[s]+1+alpha+beta)
             alpha_summation+=beta_summation
         s_summation+=(1.0j)**multiplicities[s]*alpha_summation/math.factorial(multiplicities[s]-1)
@@ -144,6 +159,7 @@ def analytic_sum_pdf (x):
     return (lambda_prod**2)*s_summation
 
 print(analytic_sum_pdf(-0.2))
+#test value for the formula
                         
                 
 """
